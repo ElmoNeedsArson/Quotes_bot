@@ -1,0 +1,6 @@
+.env
+node_modules
+quotes.db
+.project
+Scripts
+.dbeaver
