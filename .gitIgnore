@@ -4,3 +4,6 @@ quotes.db
 .project
 Scripts
 .dbeaver
+package-lock.json
+package.json
+.gitIgnore
