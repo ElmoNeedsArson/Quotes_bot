@@ -94,7 +94,7 @@ client.once('ready', async () => {
     // daily quote cron scheduling
     cron.schedule(
         // '14 16 * * *', //minutes, hours (24 hour clock)
-        '57 14 * * *',
+        '0 7 * * *',
         async () => {
             const channel = await client.channels.fetch(
                 process.env.QUOTE_CHANNEL_ID
