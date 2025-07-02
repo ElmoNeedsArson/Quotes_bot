@@ -21,6 +21,7 @@ const quoteByName = require('./commands/quotes-by-name.js');
 // A table for the raw quotes, who said the quote, who added it and when
 // A table for ranking per user on a quote 
 // A third table linking a discord message id to a quote id, so we know what quote to update
+// A fourth table for remembering the daily quotes, to avoid repetition
 const db = new Database('quotes.db');
 db.exec(`
 CREATE TABLE IF NOT EXISTS quotes (
@@ -43,6 +44,11 @@ CREATE TABLE IF NOT EXISTS votes (
 CREATE TABLE IF NOT EXISTS message_quote_map (
   message_id TEXT PRIMARY KEY,
   quote_id INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS daily_quotes (
+  date TEXT PRIMARY KEY,
+  quote_id INTEGER
 );
 `);
 
@@ -88,16 +94,39 @@ client.once('ready', async () => {
     // daily quote cron scheduling
     cron.schedule(
         // '14 16 * * *', //minutes, hours (24 hour clock)
-        '0 9 * * *',
+        '57 14 * * *',
         async () => {
             const channel = await client.channels.fetch(
                 process.env.QUOTE_CHANNEL_ID
             );
             if (!channel) return;
 
-            const quote = db
-                .prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1')
-                .get();
+            // Get all used quote_ids
+            const usedQuotes = db.prepare(
+                `SELECT quote_id FROM daily_quotes`
+            ).all().map(row => row.quote_id);
+
+            console.log(usedQuotes)
+
+            // const quote = db
+            //     .prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1')
+            //     .get();
+
+            // Try to get a random unused quote
+            let quote;
+            if (usedQuotes.length > 0) {
+                quote = db.prepare(
+                    `SELECT * FROM quotes WHERE id NOT IN (${usedQuotes.map(() => '?').join(',')}) ORDER BY RANDOM() LIMIT 1`
+                ).get(...usedQuotes);
+            } else {
+                quote = db.prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1').get();
+            }
+
+            // If all quotes have been used, reset and pick any quote
+            if (!quote) {
+                db.prepare('DELETE FROM daily_quotes').run();
+                quote = db.prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1').get();
+            }
 
             const embed = new EmbedBuilder()
                 .setTitle('Quote of the day - Cast your vote')
@@ -114,6 +143,11 @@ client.once('ready', async () => {
                 db.prepare(
                     'INSERT INTO message_quote_map (message_id, quote_id) VALUES (?, ?)'
                 ).run(sent.id, quote.id);
+
+                // Log the quote as used today
+                db.prepare(
+                    'INSERT OR REPLACE INTO daily_quotes (date, quote_id) VALUES (date(\'now\'), ?)'
+                ).run(quote.id);
             }
         },
         { timezone: 'Europe/Amsterdam' }
