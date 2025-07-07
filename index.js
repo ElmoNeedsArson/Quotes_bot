@@ -94,14 +94,14 @@ client.once('ready', async () => {
     // daily quote cron scheduling
     cron.schedule(
         // '14 16 * * *', //minutes, hours (24 hour clock)
-        '* 7 * * *',
+        '0 7 * * *',
         async () => { await random_daily_quote() },
         { timezone: 'Europe/Amsterdam' }
     );
 
     cron.schedule(
         // '14 16 * * *', //minutes, hours (24 hour clock)
-        '* 19 * * *',
+        '0 19 * * *',
         async () => { await random_daily_quote() },
         { timezone: 'Europe/Amsterdam' }
     );
