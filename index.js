@@ -101,7 +101,7 @@ client.once('ready', async () => {
 
     cron.schedule(
         // '14 16 * * *', //minutes, hours (24 hour clock)
-        '0 19 * * *',
+        '0 20 * * *',
         async () => { await random_daily_quote() },
         { timezone: 'Europe/Amsterdam' }
     );
