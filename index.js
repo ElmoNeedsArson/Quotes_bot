@@ -94,64 +94,73 @@ client.once('ready', async () => {
     // daily quote cron scheduling
     cron.schedule(
         // '14 16 * * *', //minutes, hours (24 hour clock)
-        '0 7 * * *',
-        async () => {
-            const channel = await client.channels.fetch(
-                process.env.QUOTE_CHANNEL_ID
-            );
-            if (!channel) return;
-
-            // Get all used quote_ids
-            const usedQuotes = db.prepare(
-                `SELECT quote_id FROM daily_quotes`
-            ).all().map(row => row.quote_id);
-
-            console.log(usedQuotes)
-
-            // const quote = db
-            //     .prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1')
-            //     .get();
-
-            // Try to get a random unused quote
-            let quote;
-            if (usedQuotes.length > 0) {
-                quote = db.prepare(
-                    `SELECT * FROM quotes WHERE id NOT IN (${usedQuotes.map(() => '?').join(',')}) ORDER BY RANDOM() LIMIT 1`
-                ).get(...usedQuotes);
-            } else {
-                quote = db.prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1').get();
-            }
-
-            // If all quotes have been used, reset and pick any quote
-            if (!quote) {
-                db.prepare('DELETE FROM daily_quotes').run();
-                quote = db.prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1').get();
-            }
-
-            const embed = new EmbedBuilder()
-                .setTitle('Quote of the day - Cast your vote')
-                .setDescription(
-                    quote ? `“${quote.text}”` : 'No quotes have been added yet'
-                )
-                .setFooter({ text: `- ${quote?.author ?? 'Unknown'}` })
-                .setColor(quote ? '#0099ff' : 'Red');
-
-            const sent = await channel.send({ embeds: [embed] });
-            for (const opt of voteOptions) await sent.react(opt.icon);
-
-            if (quote) {
-                db.prepare(
-                    'INSERT INTO message_quote_map (message_id, quote_id) VALUES (?, ?)'
-                ).run(sent.id, quote.id);
-
-                // Log the quote as used today
-                db.prepare(
-                    'INSERT OR REPLACE INTO daily_quotes (date, quote_id) VALUES (date(\'now\'), ?)'
-                ).run(quote.id);
-            }
-        },
+        '* 7 * * *',
+        async () => { await random_daily_quote() },
         { timezone: 'Europe/Amsterdam' }
     );
+
+    cron.schedule(
+        // '14 16 * * *', //minutes, hours (24 hour clock)
+        '* 19 * * *',
+        async () => { await random_daily_quote() },
+        { timezone: 'Europe/Amsterdam' }
+    );
+
+    async function random_daily_quote() {
+        const channel = await client.channels.fetch(
+            process.env.QUOTE_CHANNEL_ID
+        );
+        if (!channel) return;
+
+        // Get all used quote_ids
+        const usedQuotes = db.prepare(
+            `SELECT quote_id FROM daily_quotes`
+        ).all().map(row => row.quote_id);
+
+        console.log(usedQuotes)
+
+        // const quote = db
+        //     .prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1')
+        //     .get();
+
+        // Try to get a random unused quote
+        let quote;
+        if (usedQuotes.length > 0) {
+            quote = db.prepare(
+                `SELECT * FROM quotes WHERE id NOT IN (${usedQuotes.map(() => '?').join(',')}) ORDER BY RANDOM() LIMIT 1`
+            ).get(...usedQuotes);
+        } else {
+            quote = db.prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1').get();
+        }
+
+        // If all quotes have been used, reset and pick any quote
+        if (!quote) {
+            db.prepare('DELETE FROM daily_quotes').run();
+            quote = db.prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1').get();
+        }
+
+        const embed = new EmbedBuilder()
+            .setTitle('Quote of the day - Cast your vote')
+            .setDescription(
+                quote ? `“${quote.text}”` : 'No quotes have been added yet'
+            )
+            .setFooter({ text: `- ${quote?.author ?? 'Unknown'}` })
+            .setColor(quote ? '#0099ff' : 'Red');
+
+        const sent = await channel.send({ embeds: [embed] });
+        for (const opt of voteOptions) await sent.react(opt.icon);
+
+        if (quote) {
+            db.prepare(
+                'INSERT INTO message_quote_map (message_id, quote_id) VALUES (?, ?)'
+            ).run(sent.id, quote.id);
+
+            // Log the quote as used today
+            db.prepare(
+                'INSERT OR REPLACE INTO daily_quotes (date, quote_id) VALUES (datetime(\'now\'), ?)'
+            ).run(quote.id);
+        }
+    }
 
     // Dev/test: send a quote 5 seconds after startup
     // setTimeout(async () => {
