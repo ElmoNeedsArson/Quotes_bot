@@ -29,8 +29,8 @@ module.exports = {
             `SELECT id, text, author, submitter, timestamp
             FROM quotes
             WHERE ${whereClauses}
-            ORDER BY timestamp DESC
-            LIMIT 24`
+            ORDER BY timestamp DESC`
+            //LIMIT 24`
         );
         const rows = stmt.all(...params);
 
@@ -54,12 +54,12 @@ module.exports = {
             .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() });
 
         // List up to 5 quotes
-        rows.slice(0, 5).forEach(q => {
+        rows.slice(0, 24).forEach(q => {
             const clipped = q.text.length > 100 ? q.text.slice(0, 97) + '...' : q.text;
             embed.addFields({ name: `#${q.id} • ${q.author}`, value: `> “${clipped}”`, inline: false });
         });
 
-        if (rows.length > 5) {
+        if (rows.length > 24) {
             embed.addFields({ name: 'And more...', value: `Showing 5 of ${rows.length} results. Refine your search or check the database directly.` });
         }
 
