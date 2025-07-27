@@ -30,7 +30,7 @@ module.exports = {
             FROM quotes
             WHERE ${whereClauses}
             ORDER BY timestamp DESC
-            LIMIT 5`
+            LIMIT 24`
         );
         const rows = stmt.all(...params);
 
