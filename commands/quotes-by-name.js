@@ -60,7 +60,7 @@ module.exports = {
         });
 
         if (rows.length > 24) {
-            embed.addFields({ name: 'And more...', value: `Showing 5 of ${rows.length} results. Refine your search or check the database directly.` });
+            embed.addFields({ name: 'And more...', value: `Showing 24 of ${rows.length} results. Refine your search or check the database directly.` });
         }
 
         await interaction.reply({ embeds: [embed] });
