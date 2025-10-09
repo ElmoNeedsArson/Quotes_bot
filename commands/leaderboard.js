@@ -66,13 +66,13 @@ module.exports = {
       const nextPage = page + 1;
 
       const prev = new ButtonBuilder()
-        .setCustomId(`quotes_nav_${prevPage}_${interaction.user.id}`)
+        .setCustomId(`quotes_nav_${prevPage}`)
         .setLabel('◀ Prev')
         .setStyle(ButtonStyle.Primary)
         .setDisabled(page <= 0);
 
       const next = new ButtonBuilder()
-        .setCustomId(`quotes_nav_${nextPage}_${interaction.user.id}`)
+        .setCustomId(`quotes_nav_${nextPage}`)
         .setLabel('Next ▶')
         .setStyle(ButtonStyle.Primary)
         .setDisabled(page >= totalPages - 1);
@@ -107,7 +107,7 @@ module.exports = {
     });
 
     const filter = (i) =>
-      i.user.id === interaction.user.id && i.customId && i.customId.startsWith('quotes_nav_');
+      i.customId && i.customId.startsWith('quotes_nav_');
 
     const collector = message.createMessageComponentCollector({
       filter,
