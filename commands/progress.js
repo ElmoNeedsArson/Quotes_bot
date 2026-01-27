@@ -42,7 +42,8 @@ module.exports = {
       .setColor('#00aa88')
       .setDescription(
         `${bar} **${percentText}%**\n\n` +
-        `**${voted}** / **${total}** quotes have been voted on`
+        `**${voted}** / **${total}** quotes have been voted on` +
+        `2 daily quotes means probably done in ${voted/2} days`
       )
       .setFooter({
         text: `Requested by ${interaction.user.tag}`,
