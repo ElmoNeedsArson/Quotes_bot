@@ -17,6 +17,8 @@ const addQuoteCmd = require('./commands/addquote.js');
 const leaderboardCmd = require('./commands/leaderboard.js');
 const myRankingCmd = require('./commands/myranking.js');
 const quoteByName = require('./commands/quotes-by-name.js');
+const controversialCmd = require('./commands/controversial.js');
+const progressCmd = require('./commands/progress.js');
 
 // A table for the raw quotes, who said the quote, who added it and when
 // A table for ranking per user on a quote 
@@ -66,12 +68,16 @@ client.commands.set(addQuoteCmd.data.name, addQuoteCmd);
 client.commands.set(leaderboardCmd.data.name, leaderboardCmd);
 client.commands.set(myRankingCmd.data.name, myRankingCmd);
 client.commands.set(quoteByName.data.name, quoteByName);
+client.commands.set(controversialCmd.data.name, controversialCmd);
+client.commands.set(progressCmd.data.name, progressCmd)
 
 const commandsJSON = [
     addQuoteCmd.data.toJSON(),
     leaderboardCmd.data.toJSON(),
     myRankingCmd.data.toJSON(),
     quoteByName.data.toJSON(),
+    controversialCmd.data.toJSON(),
+    progressCmd.data.toJSON(),
 ];
 
 //Upon load
