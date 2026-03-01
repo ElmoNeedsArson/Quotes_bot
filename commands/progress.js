@@ -34,6 +34,7 @@ module.exports = {
     }
 
     const percent = voted / total;
+    const togo = total-voted;
     const bar = makeProgressBar(voted, total, 12);
     const percentText = Math.round(percent * 100);
 
@@ -43,7 +44,7 @@ module.exports = {
       .setDescription(
         `${bar} **${percentText}%**\n\n` +
         `**${voted}** / **${total}** quotes have been voted on\n` +
-        `2 daily quotes means probably done in ${voted/2} days`
+        `2 daily quotes means probably done in ${togo/2} days`
       )
       .setFooter({
         text: `Requested by ${interaction.user.tag}`,
