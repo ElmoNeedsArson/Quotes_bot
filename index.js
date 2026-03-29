@@ -113,58 +113,69 @@ client.once('ready', async () => {
     );
 
     async function random_daily_quote() {
-        const channel = await client.channels.fetch(
-            process.env.QUOTE_CHANNEL_ID
-        );
-        if (!channel) return;
+        const startedAt = new Date().toISOString();
+        console.log(`[daily-quote] ${startedAt}: requested`);
 
-        // Get all used quote_ids
-        const usedQuotes = db.prepare(
-            `SELECT quote_id FROM daily_quotes`
-        ).all().map(row => row.quote_id);
+        try {
+            const channel = await client.channels.fetch(
+                process.env.QUOTE_CHANNEL_ID
+            );
+            if (!channel) {
+                console.error('[daily-quote] Channel fetch returned null.');
+                return;
+            }
 
-        console.log(usedQuotes)
+            // Get all used quote_ids
+            const usedQuotes = db.prepare(
+                `SELECT quote_id FROM daily_quotes`
+            ).all().map(row => row.quote_id);
 
-        // const quote = db
-        //     .prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1')
-        //     .get();
+            // Try to get a random unused quote
+            let quote;
+            if (usedQuotes.length > 0) {
+                quote = db.prepare(
+                    `SELECT * FROM quotes WHERE id NOT IN (${usedQuotes.map(() => '?').join(',')}) ORDER BY RANDOM() LIMIT 1`
+                ).get(...usedQuotes);
+            } else {
+                quote = db.prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1').get();
+            }
 
-        // Try to get a random unused quote
-        let quote;
-        if (usedQuotes.length > 0) {
-            quote = db.prepare(
-                `SELECT * FROM quotes WHERE id NOT IN (${usedQuotes.map(() => '?').join(',')}) ORDER BY RANDOM() LIMIT 1`
-            ).get(...usedQuotes);
-        } else {
-            quote = db.prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1').get();
-        }
+            // If all quotes have been used, reset and pick any quote
+            if (!quote) {
+                console.log('[daily-quote] No unused quotes left. Resetting daily quote history.');
+                db.prepare('DELETE FROM daily_quotes').run();
+                quote = db.prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1').get();
+            }
 
-        // If all quotes have been used, reset and pick any quote
-        if (!quote) {
-            db.prepare('DELETE FROM daily_quotes').run();
-            quote = db.prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1').get();
-        }
+            if (!quote) {
+                console.warn('[daily-quote] No quotes found in database. Sending placeholder message.');
+            }
 
-        const embed = new EmbedBuilder()
-            .setTitle('Quote of the day - Cast your vote')
-            .setDescription(
-                quote ? `“${quote.text}”` : 'No quotes have been added yet'
-            )
-            .setFooter({ text: `- ${quote?.author ?? 'Unknown'}` })
-            .setColor(quote ? '#0099ff' : 'Red');
+            const embed = new EmbedBuilder()
+                .setTitle('Quote of the day - Cast your vote')
+                .setDescription(
+                    quote ? `“${quote.text}”` : 'No quotes have been added yet'
+                )
+                .setFooter({ text: `- ${quote?.author ?? 'Unknown'}` })
+                .setColor(quote ? '#0099ff' : 'Red');
 
-        const sent = await channel.send({ embeds: [embed] });
-        for (const opt of voteOptions) await sent.react(opt.icon);
+            const sent = await channel.send({ embeds: [embed] });
+            for (const opt of voteOptions) await sent.react(opt.icon);
 
-        if (quote) {
-            db.prepare(
-                'INSERT INTO message_quote_map (message_id, quote_id) VALUES (?, ?)'
-            ).run(sent.id, quote.id);
+            if (quote) {
+                db.prepare(
+                    'INSERT INTO message_quote_map (message_id, quote_id) VALUES (?, ?)'
+                ).run(sent.id, quote.id);
 
-            // Log the quote as used today
-            db.prepare(
-                'INSERT OR REPLACE INTO daily_quotes (date, quote_id) VALUES (datetime(\'now\'), ?)'
-            ).run(quote.id);
+                // Log the quote as used today
+                db.prepare(
+                    'INSERT OR REPLACE INTO daily_quotes (date, quote_id) VALUES (datetime(\'now\'), ?)'
+                ).run(quote.id);
+            }
+
+            console.log(`[daily-quote] posted message ${sent.id}${quote ? ` with quote ${quote.id}` : ''}.`);
+        } catch (err) {
+            console.error('[daily-quote] failed to send daily quote.', err);
         }
     }
 
